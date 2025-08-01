@@ -1,0 +1,153 @@
+---
+title: "Annual Billing By Partner"
+output: pdf_document
+---
+
+```{python}
+
+# import necessary libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load in data as dataframe objects
+df_2022 = pd.read_excel(
+  'C:/Users/njlei/OneDrive/Desktop/Wank & Liptzin/Annual Billing By Partner.xlsx', 
+  sheet_name = '2022', 
+  header = 4
+  ).dropna()
+df_2023 = pd.read_excel(
+  'C:/Users/njlei/OneDrive/Desktop/Wank & Liptzin/Annual Billing By Partner.xlsx', 
+  sheet_name = '2023', 
+  header = 4
+  ).dropna()
+df_2024 = pd.read_excel(
+  'C:/Users/njlei/OneDrive/Desktop/Wank & Liptzin/Annual Billing By Partner.xlsx', 
+  sheet_name = '2024', 
+  header = 4
+  ).dropna()
+df_2025 = pd.read_excel(
+  'C:/Users/njlei/OneDrive/Desktop/Wank & Liptzin/Annual Billing By Partner.xlsx', 
+  sheet_name = '2025 (2)', 
+  header = 6
+  ).dropna()
+df_2025_billing = df_2025.iloc[:3]
+df_2025_collections = df_2025.iloc[3:]
+
+```
+
+```{python}
+
+# Bar graph demonstrating total billed and paid by each partner for 2022, 2023, and 2024
+
+partners = df_2022['Partner']
+x = np.arange(len(partners))
+bar_width = 0.1
+
+fig, ax = plt.subplots(figsize=(8, 4))
+
+# Billed bars
+ax.bar(x - 1.5*bar_width, df_2022['Total Billed'], bar_width, label = '2022 Billed', color = 'skyblue')
+ax.bar(x + 0.5*bar_width, df_2023['Total Billed'], bar_width, label = '2023 Billed', color = 'orange')
+ax.bar(x + 2.5*bar_width, df_2024['Total Billed'], bar_width, label = '2024 Billed', color = 'green')
+
+# Paid bars
+ax.bar(x - 0.5*bar_width, df_2022['Total Paid'], bar_width, label = '2022 Paid',
+       facecolor = 'none', edgecolor = 'skyblue', hatch = '//')
+ax.bar(x + 1.5*bar_width, df_2023['Total Paid'], bar_width, label = '2023 Paid',
+       facecolor = 'none', edgecolor = 'orange', hatch = '//')
+ax.bar(x + 3.5*bar_width, df_2024['Total Paid'], bar_width, label = '2024 Paid',
+       facecolor = 'none', edgecolor = 'green', hatch = '//')
+
+# Axis labels, ticks, and legend position
+ax.set_xlabel('Partner', fontweight = 'bold')
+ax.set_ylabel('Amount', fontweight = 'bold')
+ax.set_title('Amount Billed and Paid by Partner (2022–2024)', pad=20, fontweight = 'bold')
+ax.set_xticks(x + bar_width / 2)
+ax.set_xticklabels(partners)
+ax.ticklabel_format(style = 'plain', axis = 'y')
+ax.legend(loc = 'center left', bbox_to_anchor = (1.02, 0.5), ncol = 1, frameon = False)
+
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+
+# Bar graph demonstrating total billed and collected each month by partner for 2025
+
+# Melt to long format
+billing_long = df_2025_billing.melt(id_vars='Partner', var_name='Month', value_name='Billing')
+collections_long = df_2025_collections.melt(id_vars='Partner', var_name='Month', value_name='Collections')
+
+# Merge billing and collections
+merged = pd.merge(billing_long, collections_long, on=['Partner', 'Month'])
+
+# Ensure correct month order
+month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'Total']
+merged['Month'] = pd.Categorical(merged['Month'], categories=month_order, ordered=True)
+merged = merged.sort_values(['Month', 'Partner'])
+merged = merged[merged['Partner'] != 'Firm Total']
+
+
+# Plotting setup
+partners = merged['Partner'].unique()
+months = month_order
+x = np.arange(len(months))  # x-axis positions for months
+width = 0.1  # width of each bar
+
+fig, ax = plt.subplots(figsize=(8, 4))
+colors = plt.cm.Set1.colors
+
+# Track handles and labels for custom legend
+handles = []
+labels = []
+
+for i, partner in enumerate(partners):
+    partner_data = merged[merged['Partner'] == partner]
+    color = colors[i % len(colors)]
+
+    # Billing (solid)
+    billing_bar = ax.bar(
+        x + i * 2 * width,
+        partner_data['Billing'].values,
+        width,
+        label = f'{partner}\nBilling',
+        color = color
+    )
+    handles.append(billing_bar[0])
+    labels.append(f'{partner}\nBilling')
+
+    # Collections (hatched with border)
+    collections_bar = ax.bar(
+        x + (i * 2 + 1) * width,
+        partner_data['Collections'].values,
+        width,
+        hatch = '//',
+        edgecolor = color,
+        facecolor = 'none',
+        linewidth = 1.5,
+        label = f'{partner}\nCollections'
+    )
+    handles.append(collections_bar[0])
+    labels.append(f'{partner}\nCollections')
+
+# Labels and formatting
+ax.set_xlabel('Month', fontweight = 'bold')
+ax.set_ylabel('Amount', fontweight = 'bold')
+ax.set_title('Monthly Billing and Collections by Partner', pad=20, fontweight = 'bold')
+ax.set_xticks(x + bar_width / 4)
+ax.set_xticklabels(months)
+
+# Tick labels
+ax.set_xticks(x + width * len(partners))
+ax.set_xticklabels(months)
+
+# Legend and layout
+ax.ticklabel_format(style = 'plain', axis = 'y')
+ax.legend(loc = 'center left', bbox_to_anchor = (1.02, 0.5), ncol = 1, frameon = False)
+plt.subplots_adjust(right = 0.78)
+plt.show()
+
+```
